@@ -1,5 +1,5 @@
 https = require 'https'
-https.globalAgent.maxSockets = 20;
+https.globalAgent.maxSockets = 100;
 request = require 'request'
 cheerio = require 'cheerio'
 _ = require 'lodash'
@@ -96,4 +96,4 @@ productSubCategoriesStream = (category) ->
 productCategoriesStream = () ->
   Bacon.fromNodeCallback(fetchProductCategories).flatMap(Bacon.fromArray)
 
-productCategoriesStream().flatMapConcat(productSubCategoriesStream).map((category) -> JSON.stringify(category, undefined, 2)).log()
+productCategoriesStream().flatMapWithConcurrencyLimit(2, productSubCategoriesStream).map((category) -> JSON.stringify(category, undefined, 2)).log()
