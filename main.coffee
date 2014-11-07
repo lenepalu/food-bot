@@ -21,8 +21,8 @@ fetchPage = (pageUrl, extractor, cb) ->
       cb(null, extractor(cheerio.load(body)))
   )
 
-cleanedText = ($element) ->
-  $element.text().replace('\\r','').replace('\\n','').replace(/^\s+|\s+$/g, '');
+cleaned = (text) ->
+  text.replace('\r', '').replace('\n', '').replace(/^\s+|\s+$/g, '');
 
 extractProduct = ($) ->
   $('.product-page-wrapper').map(() ->
@@ -31,12 +31,13 @@ extractProduct = ($) ->
       name: $(this).find('.product-name h1').text()
       price: $(this).find('.product-price .price-int').text() + "." + $(this).find('.product-price .price-fraction').text() + $(this).find('.product-price .currency').text()
       unit: $(this).find('.product-price .selling-unit').text()
-      unitPrice: $(this).find('.product-unit-price').text()
+      unitPrice: cleaned($(this).find('.product-unit-price').text()).replace('(', '').replace(')', '')
       ean: /[0-9]+/.exec($(this).find('.product-details .ean').text())[0]
-      shortDescription: cleanedText($(this).find('.short-description'))
-      img: $(this).find('#productImageLink').attr('href') #.replace('//', '/')
-      contents: $(this).find('.additional-product-info .contents').html()
-  ).get()
+      shortDescription: cleaned($(this).find('.short-description').text())
+      img: $(this).find('#productImageLink').attr('href')
+      contents: cleaned($(this).find('.additional-product-info .contents').html())
+  )
+  .get()
 
 extractProductUrls = ($) ->
   $('.product-item .product_link').map(() ->
