@@ -1,0 +1,16 @@
+{
+  "name": "food-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.coffee",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "baconjs": "^0.7.30",
+    "cheerio": "^0.18.0",
+    "lodash": "^2.4.1",
+    "request": "^2.47.0",
+    "tough-cookie": "^0.12.1"
+  }
+}
