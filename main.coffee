@@ -40,30 +40,24 @@ fetchProductSubCategories = (url, cb) ->
 fetchProductCategories = (cb) ->
   fetchPage('/pk-seutu/info/FrontPageView.action', extractProductCategories, cb)
 
-productCategoriesStream = () ->
-  Bacon.fromNodeCallback(fetchProductCategories).flatMap(Bacon.fromArray)
+productPaginationUrlsStream = (category) ->
+  Bacon.combineTemplate
+    id: category.id
+    name: category.name
+    img: category.img
+    urls: Bacon.fromNodeCallback(fetchProductPaginationUrls, category.url).map((pageUrls) -> if pageUrls.length > 0 then pageUrls else [category.url])
 
 productSubCategoriesStream = (category) ->
   Bacon.combineTemplate
     id: category.id
     name: category.name
     img: category.img
-    children: Bacon.fromNodeCallback(fetchProductSubCategories, category.url)
+    children: Bacon.fromNodeCallback(fetchProductSubCategories, category.url).flatMap(Bacon.fromArray).flatMap(productPaginationUrlsStream).fold([], (array, value) ->
+      array.push(value)
+      return array
+    )
 
-productPaginationUrlsStream = (categoryWithChildren) ->
-  paginationUrlsStream = (category) -> Bacon.combineTemplate( {
-      category: category
-      urls: Bacon.fromNodeCallback(fetchProductPaginationUrls, category)
-    }
-  )
+productCategoriesStream = () ->
+  Bacon.fromNodeCallback(fetchProductCategories).flatMap(Bacon.fromArray)
 
-  Bacon.combineTemplate( {
-    category: categoryWithChildren.category
-    children: Bacon.fromArray(categoryWithChildren.children).flatMapConcat(paginationUrlsStream)
-  })
-
-productCategoriesStream()
-.flatMapWithConcurrencyLimit(5, productSubCategoriesStream)
-#.flatMapWithConcurrencyLimit(5, productPaginationUrlsStream)
-.log()
-
+productCategoriesStream().flatMapWithConcurrencyLimit(5, productSubCategoriesStream).map(JSON.stringify).log()
