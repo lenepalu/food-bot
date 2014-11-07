@@ -5,6 +5,9 @@ Bacon = require 'baconjs'
 
 baseUrl = 'https://ruoka.citymarket.fi'
 
+concat = (array, value) ->
+  array.concat(value)
+
 fetchPage = (pageUrl, extractor, cb) ->
   requestOptions =
     url: baseUrl + pageUrl
@@ -15,6 +18,11 @@ fetchPage = (pageUrl, extractor, cb) ->
     else
       cb(null, extractor(cheerio.load(body)))
   )
+
+extractProductUrls = ($) ->
+  $('.product-item .product_link').map(() ->
+    $(this).attr("href")
+  ).get()
 
 extractProductCount = ($) ->
   Number(/[0-9]+/.exec($('.product-list-count').text())[0])
@@ -29,6 +37,9 @@ extractProductCategories = ($) ->
       img: $(this).find('.product-category-image img').attr('src')
   ).get()
 
+fetchProductUrls = (url, cb) ->
+  fetchPage(url, extractProductUrls, cb)
+
 fetchProductCount = (url, cb) ->
   fetchPage(url, extractProductCount, cb)
 
@@ -39,30 +50,30 @@ fetchProductCategories = (cb) ->
   fetchPage('/pk-seutu/info/FrontPageView.action', extractProductCategories, cb)
 
 productPaginationUrlsStream = (category) ->
-  createPaginationUrls = (productCount) ->
+  paginationUrlsStream = (productCount) ->
     maxIndex = if productCount < 24 then 1 else productCount / 24
     pageUrls = []
     for pageIndex in [1..maxIndex] by 1
       pageUrls.push(category.url + '?page.currentPage=' + pageIndex)
-    return pageUrls
+    Bacon.fromArray(pageUrls)
+
+  productUrlsStream = (url) ->
+    Bacon.fromNodeCallback(fetchProductUrls, url)
 
   Bacon.combineTemplate
     id: category.id
     name: category.name
     img: category.img
-    urls: Bacon.fromNodeCallback(fetchProductCount, category.url).map(createPaginationUrls)
+    productUrls: Bacon.fromNodeCallback(fetchProductCount, category.url).flatMap(paginationUrlsStream).flatMap(productUrlsStream).fold([], concat)
 
 productSubCategoriesStream = (category) ->
   Bacon.combineTemplate
     id: category.id
     name: category.name
     img: category.img
-    children: Bacon.fromNodeCallback(fetchProductSubCategories, category.url).flatMap(Bacon.fromArray).flatMap(productPaginationUrlsStream).fold([], (array, value) ->
-      array.push(value)
-      return array
-    )
+    categories: Bacon.fromNodeCallback(fetchProductSubCategories, category.url).flatMap(Bacon.fromArray).flatMap(productPaginationUrlsStream).fold([], concat)
 
 productCategoriesStream = () ->
   Bacon.fromNodeCallback(fetchProductCategories).flatMap(Bacon.fromArray)
 
-productCategoriesStream().flatMapWithConcurrencyLimit(5, productSubCategoriesStream).map(JSON.stringify).log()
+productCategoriesStream().flatMapWithConcurrencyLimit(5, productSubCategoriesStream).map((category) -> JSON.stringify(category, undefined, 2)).log()
