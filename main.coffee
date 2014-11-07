@@ -16,10 +16,8 @@ fetchPage = (pageUrl, extractor, cb) ->
       cb(null, extractor(cheerio.load(body)))
   )
 
-extractProductPaginationUrls = ($) ->
-  $('.product-list-controls-top .pagination li a').map(() ->
-    productPageUrl = $(this).attr('href')
-  ).get()
+extractProductCount = ($) ->
+  Number(/[0-9]+/.exec($('.product-list-count').text())[0])
 
 extractProductCategories = ($) ->
   $('.product-category a').map(() ->
@@ -31,8 +29,8 @@ extractProductCategories = ($) ->
       img: $(this).find('.product-category-image img').attr('src')
   ).get()
 
-fetchProductPaginationUrls = (url, cb) ->
-  fetchPage(url, extractProductPaginationUrls, cb)
+fetchProductCount = (url, cb) ->
+  fetchPage(url, extractProductCount, cb)
 
 fetchProductSubCategories = (url, cb) ->
   fetchPage(url, extractProductCategories, cb)
@@ -41,11 +39,18 @@ fetchProductCategories = (cb) ->
   fetchPage('/pk-seutu/info/FrontPageView.action', extractProductCategories, cb)
 
 productPaginationUrlsStream = (category) ->
+  createPaginationUrls = (productCount) ->
+    maxIndex = if productCount < 24 then 1 else productCount / 24
+    pageUrls = []
+    for pageIndex in [1..maxIndex] by 1
+      pageUrls.push(category.url + '?page.currentPage=' + pageIndex)
+    return pageUrls
+
   Bacon.combineTemplate
     id: category.id
     name: category.name
     img: category.img
-    urls: Bacon.fromNodeCallback(fetchProductPaginationUrls, category.url).map((pageUrls) -> if pageUrls.length > 0 then pageUrls else [category.url])
+    urls: Bacon.fromNodeCallback(fetchProductCount, category.url).map(createPaginationUrls)
 
 productSubCategoriesStream = (category) ->
   Bacon.combineTemplate
