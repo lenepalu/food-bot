@@ -35,7 +35,7 @@ extractProduct = ($) ->
       ean: /[0-9]+/.exec($(this).find('.product-details .ean').text())[0]
       shortDescription: cleaned($(this).find('.short-description').text())
       img: $(this).find('#productImageLink').attr('href')
-      contents: cleaned($(this).find('.additional-product-info .contents').html())
+      contents: cleaned($(this).find('.additional-product-info .contents p').text())
   )
   .get()
 
