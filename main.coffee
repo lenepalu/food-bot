@@ -96,4 +96,4 @@ productSubCategoriesStream = (category) ->
 productCategoriesStream = () ->
   Bacon.fromNodeCallback(fetchProductCategories).flatMap(Bacon.fromArray)
 
-productCategoriesStream().flatMapWithConcurrencyLimit(2, productSubCategoriesStream).map((category) -> JSON.stringify(category, undefined, 2)).log()
+productCategoriesStream().flatMapWithConcurrencyLimit(4, productSubCategoriesStream).map((category) -> JSON.stringify(category, undefined, 2)).log()
