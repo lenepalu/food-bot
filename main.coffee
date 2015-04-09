@@ -25,17 +25,17 @@ cleaned = (text) ->
   text.replace('\r', '').replace('\n', '').replace(/^\s+|\s+$/g, '');
 
 extractProduct = ($) ->
-  $('.product-page-wrapper').map(() ->
+  $('.product-page-container').map(() ->
     data =
       id: Number($(this).find('.product-purchase form').attr('data-product-id'))
-      name: $(this).find('.product-name h1').text()
+      name: cleaned($(this).find('.product-name h2').text())
       price: $(this).find('.product-price .price-int').text() + "." + $(this).find('.product-price .price-fraction').text() + $(this).find('.product-price .currency').text()
       unit: $(this).find('.product-price .selling-unit').text()
       unitPrice: cleaned($(this).find('.product-unit-price').text()).replace('(', '').replace(')', '')
-      ean: /[0-9]+/.exec($(this).find('.product-details .ean').text())[0]
+      ean: /[0-9]+/.exec($(this).find('.product-details th:contains(EAN-koodi)').next('td').text())[0]
       shortDescription: cleaned($(this).find('.short-description').text())
       img: $(this).find('#productImageLink').attr('href')
-      contents: cleaned($(this).find('.additional-product-info .contents p').text())
+      contents: cleaned($(this).find('.product-details th:contains(\n                            Ainesosat)').next('td').text())
   )
   .get()
 
